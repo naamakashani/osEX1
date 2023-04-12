@@ -23,7 +23,7 @@ void new_path(int arg, char *argv[]) {
 }
 
 
-char *old_executable(char *command) {
+char *find_executable(char *command) {
     // Get the directories listed in the PATH environment variable
     char *path = getenv("PATH");
     char **directories;
@@ -47,10 +47,9 @@ char *old_executable(char *command) {
     }
 
     // Could not find the executable file
-    free(executable);
     return NULL;
 }
-char *find_executable(char *command) {
+char *old_executable(char *command) {
     // Get the directories listed in the PATH environment variable
     char *path = getenv("PATH");
     char **directories;
@@ -123,7 +122,7 @@ int main(int arg, char *argv[]) {
     //all the command
     char command[MAX_COMMAND_LENGTH];
     //all strings in the command
-    char arguments[100][100];
+    char *arguments[100];
     while (1) {
         print_prompt();
         if (fgets(command, MAX_COMMAND_LENGTH, stdin) == NULL) {
@@ -137,12 +136,15 @@ int main(int arg, char *argv[]) {
 
         // Parse the input into command and ents
         int arg_count = 0;
+
         char *token = strtok(command, " ");
+        char *n = token;
         while (token != NULL && arg_count < 100) {
-            strcpy(arguments[arg_count], token);
+           arguments[arg_count]=token;
             arg_count++;
             token = strtok(NULL, " ");
         }
+       arguments[arg_count]= NULL;
         // Handle built-in commands
         if (strcmp(arguments[0], "cd") == 0) {
             if (arg_count > 2) {
@@ -186,9 +188,9 @@ int main(int arg, char *argv[]) {
         }
         if (pid == 0) {
             // Child process: execute the command
-            execvp(executable, arguments);
-            //execvp(arguments[0], arguments);cat
-            perror("execv failed");
+            execl(executable,arguments,NULL);
+            //execvp(, arguments);cat
+            perror("execl failed");
             strcpy(history[history_count], command);
             pid_history[history_count] = pid;
             history_count++;
@@ -196,10 +198,8 @@ int main(int arg, char *argv[]) {
 
         } else {
             // Parent process: wait for the child to finish
-            int status;
-            if (waitpid(pid, &status, 0) == -1) {
-                perror("waitpid failed");
-            }
+            int status,waited;
+            waited = wait(&status);
             // Add the command to the history
             strcpy(history[history_count], command);
             pid_history[history_count] = pid;
