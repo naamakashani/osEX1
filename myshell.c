@@ -1,3 +1,5 @@
+//Naama Kashani 312400476
+
 #include <stdio.h>
 
 #include <string.h>
@@ -7,8 +9,6 @@
 #include <sys/wait.h>
 
 #include <stdlib.h>
-
-#include <stdint-gcc.h>
 
 
 
@@ -32,15 +32,17 @@ void new_path(int arg, char *argv[]) {
 
     for (i = 0; i < arg; i++) {
 
-        char *z = getenv("PATH");
+        char *path = getenv("PATH");
 
-        strcat(z, ":/");
+        strcat(path, ":/");
 
-        strcat(z, argv[i]);
+        strcat(path, argv[i]);
 
-        setenv("PATH", z, 0);
+        setenv("PATH", path, 0);
 
     }
+
+
 
 }
 
@@ -98,7 +100,7 @@ int execute_cd(char arguments[]) {
 
             perror("cd failed");
 
-            free(current_dir);
+
 
             return 1;
 
@@ -109,8 +111,6 @@ int execute_cd(char arguments[]) {
     }
 
     return 0;
-
-
 
 }
 
@@ -128,7 +128,7 @@ void execute_exit() {
 
 void print_prompt() {
 
-    printf("$");
+    printf("$ ");
 
     fflush(stdout);
 
@@ -140,17 +140,15 @@ int main(int arg, char *argv[]) {
 
 
 
-    new_path(arg, argv);
-
-    //all the command
-
     char command[MAX_COMMAND_LENGTH];
-
-    //all strings in the command
 
     char *arguments[100];
 
-    while (1) {
+    new_path(arg, argv);
+
+    int run = 1;
+
+    while (run) {
 
         print_prompt();
 
@@ -160,7 +158,7 @@ int main(int arg, char *argv[]) {
 
             printf("\n");
 
-            break;
+            continue;
 
         }
 
@@ -170,17 +168,19 @@ int main(int arg, char *argv[]) {
 
         command[strcspn(command, "\n")] = '\0';
 
+        char str_command[MAX_COMMAND_LENGTH];
+
+        strcpy(str_command, command);
 
 
-        // Parse the input into command and ents
+
+        // Parse the input into command and arguments
 
         int arg_count = 0;
 
-
-
         char *token = strtok(command, " ");
 
-        while (token != NULL && arg_count < 100) {
+        while (token != NULL) {
 
             arguments[arg_count] = token;
 
@@ -192,9 +192,17 @@ int main(int arg, char *argv[]) {
 
         arguments[arg_count] = NULL;
 
+
+
         // Handle built-in commands
 
         if (strcmp(arguments[0], "cd") == 0) {
+
+            strcpy(history[history_count], str_command);
+
+            pid_history[history_count] = getpid();
+
+            history_count++;
 
             if (arg_count > 2) {
 
@@ -204,21 +212,9 @@ int main(int arg, char *argv[]) {
 
                 int status = execute_cd(arguments[1]);
 
-                if (status == 1) {
+                continue;
 
-                    continue;
 
-                } else {
-
-                    strcpy(history[history_count], command);
-
-                    pid_history[history_count] = getpid();
-
-                    history_count++;
-
-                    continue;
-
-                }
 
             }
 
@@ -232,7 +228,7 @@ int main(int arg, char *argv[]) {
 
         if (strcmp(arguments[0], "history") == 0) {
 
-            strcpy(history[history_count], command);
+            strcpy(history[history_count], str_command);
 
             pid_history[history_count] = getpid();
 
@@ -264,13 +260,7 @@ int main(int arg, char *argv[]) {
 
             execvp(arguments[0], arguments);
 
-            perror("execl failed");
-
-            strcpy(history[history_count], command);
-
-            pid_history[history_count] = pid;
-
-            history_count++;
+            perror("execvp failed");
 
             exit(0);
 
@@ -286,7 +276,7 @@ int main(int arg, char *argv[]) {
 
             // Add the command to the history
 
-            strcpy(history[history_count], command);
+            strcpy(history[history_count], str_command);
 
             pid_history[history_count] = pid;
 
@@ -298,7 +288,7 @@ int main(int arg, char *argv[]) {
 
     }
 
+    return 0;
+
 }
-
-
 
